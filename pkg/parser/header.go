@@ -131,20 +131,20 @@ func ParseDNSHeader(buf []byte) (*DNSHeader, error) {
 	return header, nil
 }
 
-func ParseDNSHeaderFlags(octets []byte) (*DNSHeaderFlags, error) {
+func ParseDNSHeaderFlags(buf []byte) (*DNSHeaderFlags, error) {
 
-	if len(octets) != 2 {
+	if len(buf) != 2 {
 		return nil, ErrInvalidFlagsLength
 	}
 
 	return &DNSHeaderFlags{
-		QR:     octets[0] >> 7,
-		OPCODE: octets[0] & 0b01111000 >> 3,
-		AA:     octets[0] & 0b00000100 >> 2,
-		TC:     octets[0] & 0b00000010 >> 1,
-		RD:     octets[0] & 0b00000001,
-		RA:     octets[1] >> 7,
-		Z:      octets[1] & 0b01110000 >> 4,
-		RCODE:  octets[1] & 0b00001111,
+		QR:     buf[0] >> 7,
+		OPCODE: buf[0] & 0b01111000 >> 3,
+		AA:     buf[0] & 0b00000100 >> 2,
+		TC:     buf[0] & 0b00000010 >> 1,
+		RD:     buf[0] & 0b00000001,
+		RA:     buf[1] >> 7,
+		Z:      buf[1] & 0b01110000 >> 4,
+		RCODE:  buf[1] & 0b00001111,
 	}, nil
 }
