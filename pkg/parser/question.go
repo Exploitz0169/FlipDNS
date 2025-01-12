@@ -33,6 +33,7 @@ var (
 	ErrEmptyQNAME            = errors.New("invalid QNAME. No domain name was parsed from")
 )
 
+// Expects buf to not include DNS Header
 func ParseDNSQuestions(buf []byte, qdcount uint16) ([]*DNSQuestion, error) {
 
 	if qdcount == 0 || len(buf) == 0 {
