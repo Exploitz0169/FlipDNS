@@ -40,5 +40,18 @@ func Run(conn net.PacketConn) {
 		fmt.Printf("ANCOUNT: %d\n", header.ANCOUNT)
 		fmt.Printf("NSCOUNT: %d\n", header.NSCOUNT)
 		fmt.Printf("ARCOUNT: %d\n", header.ARCOUNT)
+
+		questions, err := parser.ParseDNSQuestions(buf[12:], header.QDCOUNT)
+		if err != nil {
+			fmt.Println("Error parsing DNS questions:", err)
+			continue
+		}
+
+		question := questions[0]
+
+		fmt.Printf("QTYPE: %d\n", question.QTYPE)
+		fmt.Printf("QCLASS: %d\n", question.QCLASS)
+		fmt.Printf("DOMAIN: %s\n", question.DOMAIN)
+
 	}
 }

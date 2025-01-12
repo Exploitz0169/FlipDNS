@@ -13,6 +13,9 @@ type DNSQuestion struct {
 	// that this field may be an odd number of octets; no
 	// padding is used.
 	QNAME []byte
+	// Domain name is parsed from QNAME, it is easiest to just
+	// return it alongside the DNS Question
+	DOMAIN string
 	// a two octet code which specifies the type of the query.
 	// The values for this field include all codes valid for a
 	// TYPE field, together with some more general codes which
@@ -26,6 +29,8 @@ type DNSQuestion struct {
 var (
 	ErrInvalidQuestionLength = errors.New("invalid DNS question length")
 	ErrBufferTooShort        = errors.New("buffer too short")
+	ErrInvalidQNAME          = errors.New("invalid QNAME. Check bytes and length octet")
+	ErrEmptyQNAME            = errors.New("invalid QNAME. No domain name was parsed from")
 )
 
 func ParseDNSQuestions(buf []byte, qdcount uint16) ([]*DNSQuestion, error) {
@@ -40,10 +45,15 @@ func ParseDNSQuestions(buf []byte, qdcount uint16) ([]*DNSQuestion, error) {
 	offset := 0
 	for i := 0; i < int(qdcount); i++ {
 		qname, n := parseQNAME(buf[offset:])
+		domain, err := parseDomainFromQNAME(qname)
+		if err != nil {
+			return nil, err
+		}
 		questions[i] = &DNSQuestion{
 			QNAME:  qname,
 			QTYPE:  BE(buf[offset+n : offset+n+2]),
 			QCLASS: BE(buf[offset+n+2 : offset+n+4]),
+			DOMAIN: domain,
 		}
 		offset += n + 4
 	}
@@ -63,4 +73,31 @@ func parseQNAME(buf []byte) ([]byte, int) {
 		}
 	}
 	return buf[:n], n
+}
+
+func parseDomainFromQNAME(qname []byte) (string, error) {
+	// Expecting at least 3. The first length octect, the label, and the terminator
+	if len(qname) < 3 {
+		return "", ErrBufferTooShort
+	}
+	domain := ""
+	i := 0
+	for i < len(qname) {
+		// QNAME ends in zero length octet
+		if qname[i] == 0x00 {
+			break
+		}
+		// Sequence of labels where each label consists of a length octet
+		// followed by that number of octets
+		labelLength := int(qname[i])
+		if labelLength < 0 || i+1+labelLength >= len(qname) {
+			return "", ErrInvalidQNAME
+		}
+		domain += string(qname[i+1:i+1+labelLength]) + "."
+		i += labelLength + 1
+	}
+	if len(domain) < 1 {
+		return "", ErrEmptyQNAME
+	}
+	return domain[:len(domain)-1], nil
 }
