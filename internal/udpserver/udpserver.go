@@ -1,6 +1,7 @@
 package udpserver
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 
@@ -53,5 +54,53 @@ func Run(conn net.PacketConn) {
 		fmt.Printf("QCLASS: %d\n", question.QCLASS)
 		fmt.Printf("DOMAIN: %s\n", question.DOMAIN)
 
+		answer, err := parser.CreateDNSAAnswer(question.QNAME, "192.168.2.143", 300)
+		if err != nil {
+			fmt.Println("Error creating DNS A answer:", err)
+			continue
+		}
+
+		fmt.Printf("Answer class: %d", answer.CLASS)
+
+		responseHeader, err := parser.CreateDNSAnswerHeader(header, 1, 0, 0)
+		if err != nil {
+			fmt.Println("Error creating dns answer header")
+			continue
+		}
+
+		items := make([]Serializable, 0, 3)
+		items = append(items, responseHeader, question, answer)
+
+		packet, err := SerializeItems(items)
+		if err != nil {
+			fmt.Println("Could not serialize items:", err)
+			continue
+		}
+
+		_, err = conn.WriteTo(packet, addr)
+		if err != nil {
+			fmt.Println("Error writing UDP packet:", err)
+			continue
+		}
+
 	}
+}
+
+type Serializable interface {
+	Serialize() ([]byte, error)
+}
+
+func SerializeItems(items []Serializable) ([]byte, error) {
+
+	buf := bytes.Buffer{}
+
+	for _, item := range items {
+		serialized, err := item.Serialize()
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(serialized)
+	}
+
+	return buf.Bytes(), nil
 }

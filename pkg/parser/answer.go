@@ -127,28 +127,43 @@ func CreateDNSAAnswer(ownerLabel []byte, ipv4 string, ttl uint32) (*DNSResourceR
 	}, nil
 }
 
-func SerializeDNSAnswers(answers []*DNSResourceRecord) ([]byte, error) {
+func (rr *DNSResourceRecord) Serialize() ([]byte, error) {
 	buf := bytes.Buffer{}
-	for _, answer := range answers {
-		if _, err := buf.Write(answer.NAME); err != nil {
+
+	if _, err := buf.Write(rr.NAME); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(&buf, binary.BigEndian, rr.TYPE); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(&buf, binary.BigEndian, rr.CLASS); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(&buf, binary.BigEndian, rr.TTL); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(&buf, binary.BigEndian, rr.RDLENGTH); err != nil {
+		return nil, err
+	}
+	if _, err := buf.Write(rr.RDATA); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func SerializeDNSResourceRecords(records []*DNSResourceRecord) ([]byte, error) {
+	buf := bytes.Buffer{}
+	for _, rr := range records {
+		serializedRR, err := rr.Serialize()
+		if err != nil {
 			return nil, err
 		}
-		if err := binary.Write(&buf, binary.BigEndian, answer.TYPE); err != nil {
-			return nil, err
-		}
-		if err := binary.Write(&buf, binary.BigEndian, answer.CLASS); err != nil {
-			return nil, err
-		}
-		if err := binary.Write(&buf, binary.BigEndian, answer.TTL); err != nil {
-			return nil, err
-		}
-		if err := binary.Write(&buf, binary.BigEndian, answer.RDLENGTH); err != nil {
-			return nil, err
-		}
-		if _, err := buf.Write(answer.RDATA); err != nil {
+		if _, err := buf.Write(serializedRR); err != nil {
 			return nil, err
 		}
 	}
+
 	return buf.Bytes(), nil
 }
 
@@ -162,11 +177,11 @@ func validateDNSLabel(label []byte) error {
 		return ErrInvalidLabel
 	}
 
-	for _, b := range label {
-		if !(b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9' || b == '-') {
-			return ErrInvalidLabel
-		}
-	}
+	// for _, b := range label {
+	// 	if !(b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9' || b == '-') {
+	// 		return ErrInvalidLabel
+	// 	}
+	// }
 
 	return nil
 }

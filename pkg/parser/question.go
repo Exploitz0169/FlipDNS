@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 )
@@ -60,6 +61,40 @@ func ParseDNSQuestions(buf []byte, qdcount uint16) ([]*DNSQuestion, error) {
 	}
 
 	return questions, nil
+}
+
+func (q *DNSQuestion) Serialize() ([]byte, error) {
+	buf := bytes.Buffer{}
+
+	if _, err := buf.Write(q.QNAME); err != nil {
+		return nil, err
+	}
+
+	if err := binary.Write(&buf, binary.BigEndian, q.QTYPE); err != nil {
+		return nil, err
+	}
+
+	if err := binary.Write(&buf, binary.BigEndian, q.QCLASS); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func SerializeQuestions(questions []*DNSQuestion) ([]byte, error) {
+	buf := bytes.Buffer{}
+
+	for _, q := range questions {
+		serializedQ, err := q.Serialize()
+		if err != nil {
+			return nil, err
+		}
+		if _, err := buf.Write(serializedQ); err != nil {
+			return nil, err
+		}
+	}
+
+	return buf.Bytes(), nil
 }
 
 // Return the QNAME and the number of bytes read

@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 )
@@ -147,4 +148,63 @@ func ParseDNSHeaderFlags(buf []byte) (*DNSHeaderFlags, error) {
 		Z:      buf[1] & 0b01110000 >> 4,
 		RCODE:  buf[1] & 0b00001111,
 	}, nil
+}
+
+// Todo: consider TC, RA
+func CreateDNSAnswerHeader(queryHeader *DNSHeader, ancount uint16, nscount uint16, arcount uint16) (*DNSHeader, error) {
+
+	return &DNSHeader{
+		ID: queryHeader.ID,
+		Flags: &DNSHeaderFlags{
+			QR:     1,
+			OPCODE: queryHeader.Flags.OPCODE,
+			AA:     1,
+			TC:     0,
+			RD:     queryHeader.Flags.RD,
+			RA:     0,
+			Z:      0,
+			RCODE:  0,
+		},
+		QDCOUNT: queryHeader.QDCOUNT,
+		ANCOUNT: ancount,
+		NSCOUNT: nscount,
+		ARCOUNT: arcount,
+	}, nil
+
+}
+
+func (h *DNSHeader) Serialize() ([]byte, error) {
+	buf := bytes.Buffer{}
+
+	if err := binary.Write(&buf, binary.BigEndian, h.ID); err != nil {
+		return nil, err
+	}
+
+	flags := uint16(h.Flags.QR)<<15 |
+		uint16(h.Flags.OPCODE)<<11 |
+		uint16(h.Flags.AA)<<10 |
+		uint16(h.Flags.TC)<<9 |
+		uint16(h.Flags.RD)<<8 |
+		uint16(h.Flags.RA)<<7 |
+		uint16(h.Flags.Z)<<4 |
+		uint16(h.Flags.RCODE)
+
+	if err := binary.Write(&buf, binary.BigEndian, flags); err != nil {
+		return nil, err
+	}
+
+	if err := binary.Write(&buf, binary.BigEndian, h.QDCOUNT); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(&buf, binary.BigEndian, h.ANCOUNT); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(&buf, binary.BigEndian, h.NSCOUNT); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(&buf, binary.BigEndian, h.ARCOUNT); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
