@@ -101,32 +101,6 @@ const (
 	TypeALL DNSType = 255
 )
 
-var (
-	ErrInvalidIP    = errors.New("invalid IP to parse to RDATA")
-	ErrInvalidLabel = errors.New("invalid DNS label")
-)
-
-func CreateDNSAAnswer(ownerLabel []byte, ipv4 string, ttl uint32) (*DNSResourceRecord, error) {
-
-	if err := validateDNSLabel(ownerLabel); err != nil {
-		return nil, ErrInvalidLabel
-	}
-
-	ip, err := getIpv4AsBytes(ipv4)
-	if err != nil {
-		return nil, err
-	}
-
-	return &DNSResourceRecord{
-		NAME:     ownerLabel,
-		TYPE:     TypeA,
-		CLASS:    ClassIN,
-		TTL:      ttl,
-		RDLENGTH: 4,
-		RDATA:    ip,
-	}, nil
-}
-
 func (rr *DNSResourceRecord) Serialize() ([]byte, error) {
 	buf := bytes.Buffer{}
 
@@ -152,19 +126,30 @@ func (rr *DNSResourceRecord) Serialize() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func SerializeDNSResourceRecords(records []*DNSResourceRecord) ([]byte, error) {
-	buf := bytes.Buffer{}
-	for _, rr := range records {
-		serializedRR, err := rr.Serialize()
-		if err != nil {
-			return nil, err
-		}
-		if _, err := buf.Write(serializedRR); err != nil {
-			return nil, err
-		}
+var (
+	ErrInvalidIP    = errors.New("invalid IP to parse to RDATA")
+	ErrInvalidLabel = errors.New("invalid DNS label")
+)
+
+func CreateDNSAAnswer(ownerLabel []byte, ipv4 string, ttl uint32) (*DNSResourceRecord, error) {
+
+	if err := validateDNSLabel(ownerLabel); err != nil {
+		return nil, ErrInvalidLabel
 	}
 
-	return buf.Bytes(), nil
+	ip, err := getIpv4AsBytes(ipv4)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DNSResourceRecord{
+		NAME:     ownerLabel,
+		TYPE:     TypeA,
+		CLASS:    ClassIN,
+		TTL:      ttl,
+		RDLENGTH: 4,
+		RDATA:    ip,
+	}, nil
 }
 
 func validateDNSLabel(label []byte) error {

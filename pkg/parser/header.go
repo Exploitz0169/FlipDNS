@@ -103,6 +103,44 @@ type DNSHeader struct {
 	ARCOUNT uint16
 }
 
+func (flags *DNSHeaderFlags) Serialize() uint16 {
+	return uint16(flags.QR)<<15 |
+		uint16(flags.OPCODE)<<11 |
+		uint16(flags.AA)<<10 |
+		uint16(flags.TC)<<9 |
+		uint16(flags.RD)<<8 |
+		uint16(flags.RA)<<7 |
+		uint16(flags.Z)<<4 |
+		uint16(flags.RCODE)
+}
+
+func (h *DNSHeader) Serialize() ([]byte, error) {
+	buf := bytes.Buffer{}
+
+	if err := binary.Write(&buf, binary.BigEndian, h.ID); err != nil {
+		return nil, err
+	}
+
+	if err := binary.Write(&buf, binary.BigEndian, h.Flags.Serialize()); err != nil {
+		return nil, err
+	}
+
+	if err := binary.Write(&buf, binary.BigEndian, h.QDCOUNT); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(&buf, binary.BigEndian, h.ANCOUNT); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(&buf, binary.BigEndian, h.NSCOUNT); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(&buf, binary.BigEndian, h.ARCOUNT); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
 var (
 	ErrInvalidHeaderLength = errors.New("invalid DNS header length: must be 12 bytes")
 	ErrInvalidFlagsLength  = errors.New("invalid DNS flags length: must be 2 bytes")
@@ -171,40 +209,4 @@ func CreateDNSAnswerHeader(queryHeader *DNSHeader, ancount uint16, nscount uint1
 		ARCOUNT: arcount,
 	}, nil
 
-}
-
-func (h *DNSHeader) Serialize() ([]byte, error) {
-	buf := bytes.Buffer{}
-
-	if err := binary.Write(&buf, binary.BigEndian, h.ID); err != nil {
-		return nil, err
-	}
-
-	flags := uint16(h.Flags.QR)<<15 |
-		uint16(h.Flags.OPCODE)<<11 |
-		uint16(h.Flags.AA)<<10 |
-		uint16(h.Flags.TC)<<9 |
-		uint16(h.Flags.RD)<<8 |
-		uint16(h.Flags.RA)<<7 |
-		uint16(h.Flags.Z)<<4 |
-		uint16(h.Flags.RCODE)
-
-	if err := binary.Write(&buf, binary.BigEndian, flags); err != nil {
-		return nil, err
-	}
-
-	if err := binary.Write(&buf, binary.BigEndian, h.QDCOUNT); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(&buf, binary.BigEndian, h.ANCOUNT); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(&buf, binary.BigEndian, h.NSCOUNT); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(&buf, binary.BigEndian, h.ARCOUNT); err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
 }
