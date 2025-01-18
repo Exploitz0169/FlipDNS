@@ -127,14 +127,13 @@ func (rr *DNSResourceRecord) Serialize() ([]byte, error) {
 }
 
 var (
-	ErrInvalidIP    = errors.New("invalid IP to parse to RDATA")
-	ErrInvalidLabel = errors.New("invalid DNS label")
+	ErrInvalidIP = errors.New("invalid IP to parse to RDATA")
 )
 
-func CreateDNSAAnswer(ownerLabel []byte, ipv4 string, ttl uint32) (*DNSResourceRecord, error) {
+func CreateDNSAAnswer(owner []byte, ipv4 string, ttl uint32) (*DNSResourceRecord, error) {
 
-	if err := validateDNSLabel(ownerLabel); err != nil {
-		return nil, ErrInvalidLabel
+	if err := ValidateDNSName(owner); err != nil {
+		return nil, err
 	}
 
 	ip, err := getIpv4AsBytes(ipv4)
@@ -143,32 +142,14 @@ func CreateDNSAAnswer(ownerLabel []byte, ipv4 string, ttl uint32) (*DNSResourceR
 	}
 
 	return &DNSResourceRecord{
-		NAME:     ownerLabel,
+		NAME:     owner,
 		TYPE:     TypeA,
 		CLASS:    ClassIN,
 		TTL:      ttl,
 		RDLENGTH: 4,
 		RDATA:    ip,
 	}, nil
-}
 
-func validateDNSLabel(label []byte) error {
-	if len(label) < 1 || len(label) > 63 {
-		return ErrInvalidLabel
-	}
-
-	// Check if the label starts or ends with a hyphen
-	if label[0] == '-' || label[len(label)-1] == '-' {
-		return ErrInvalidLabel
-	}
-
-	// for _, b := range label {
-	// 	if !(b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9' || b == '-') {
-	// 		return ErrInvalidLabel
-	// 	}
-	// }
-
-	return nil
 }
 
 func getIpv4AsBytes(domain string) ([]byte, error) {
