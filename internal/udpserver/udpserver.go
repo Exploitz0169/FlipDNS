@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net"
 
-	"github.com/exploitz0169/flipdns/pkg/parser"
+	"github.com/exploitz0169/flipdns/pkg/dns"
 )
 
 // Temp just to test the parser
@@ -28,13 +28,13 @@ func Run(conn net.PacketConn) {
 			slog.String("addr", addr.String()),
 		)
 
-		header, err := parser.ParseDNSHeader(buf[:12])
+		header, err := dns.ParseDNSHeader(buf[:12])
 		if err != nil {
 			slog.Warn("Error parsing DNS header", slog.String("error", err.Error()))
 			continue
 		}
 
-		questions, err := parser.ParseDNSQuestions(buf[12:], header.QDCOUNT)
+		questions, err := dns.ParseDNSQuestions(buf[12:], header.QDCOUNT)
 		if err != nil {
 			slog.Warn("Error parsing DNS questions", slog.String("error", err.Error()))
 			continue
@@ -42,13 +42,13 @@ func Run(conn net.PacketConn) {
 
 		question := questions[0]
 
-		answer, err := parser.CreateDNSAAnswer(question.QNAME, "192.168.2.143", 300)
+		answer, err := dns.CreateDNSAAnswer(question.QNAME, "192.168.2.143", 300)
 		if err != nil {
 			slog.Warn("Error creating DNS A answer", slog.String("error", err.Error()))
 			continue
 		}
 
-		responseHeader, err := parser.CreateDNSAnswerHeader(header, 1, 0, 0)
+		responseHeader, err := dns.CreateDNSAnswerHeader(header, 1, 0, 0)
 		if err != nil {
 			slog.Warn("Error creating DNS answer header", slog.String("error", err.Error()))
 			continue

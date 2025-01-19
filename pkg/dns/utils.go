@@ -1,4 +1,4 @@
-package parser
+package dns
 
 import "errors"
 
