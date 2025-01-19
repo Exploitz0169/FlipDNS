@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log/slog"
 	"net"
 
 	"github.com/exploitz0169/flipdns/internal/app"
@@ -29,7 +28,7 @@ func main() {
 
 	defer conn.Close()
 
-	slog.Info("Started UDP server on addr " + addr)
+	logger.Info("Started UDP server on addr " + addr)
 
 	server := udpserver.NewUdpServer(app)
 	server.Run(conn)
