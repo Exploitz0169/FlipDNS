@@ -2,7 +2,7 @@ package udpserver
 
 import (
 	"bytes"
-	"fmt"
+	"log/slog"
 	"net"
 
 	"github.com/exploitz0169/flipdns/pkg/parser"
@@ -15,56 +15,42 @@ func Run(conn net.PacketConn) {
 	for {
 		n, addr, err := conn.ReadFrom(buf)
 		if err != nil {
-			fmt.Println("Error reading from connection:", err)
+			slog.Warn("Failed to read packet",
+				slog.Int("bytes", n),
+				slog.String("addr", addr.String()),
+				slog.String("error", err.Error()),
+			)
 			continue
 		}
 
-		fmt.Printf("Received %d bytes from %s\n", n, addr)
+		slog.Info("Received packet",
+			slog.Int("bytes", n),
+			slog.String("addr", addr.String()),
+		)
 
 		header, err := parser.ParseDNSHeader(buf[:12])
 		if err != nil {
-			fmt.Println("Error parsing DNS header:", err)
+			slog.Warn("Error parsing DNS header", slog.String("error", err.Error()))
 			continue
 		}
 
-		// Print the parsed DNS header
-		fmt.Printf("ID: %d\n", header.ID)
-		fmt.Printf("QR: %d\n", header.Flags.QR)
-		fmt.Printf("OPCODE: %d\n", header.Flags.OPCODE)
-		fmt.Printf("AA: %d\n", header.Flags.AA)
-		fmt.Printf("TC: %d\n", header.Flags.TC)
-		fmt.Printf("RD: %d\n", header.Flags.RD)
-		fmt.Printf("RA: %d\n", header.Flags.RA)
-		fmt.Printf("Z: %d\n", header.Flags.Z)
-		fmt.Printf("RCODE: %d\n", header.Flags.RCODE)
-		fmt.Printf("QDCOUNT: %d\n", header.QDCOUNT)
-		fmt.Printf("ANCOUNT: %d\n", header.ANCOUNT)
-		fmt.Printf("NSCOUNT: %d\n", header.NSCOUNT)
-		fmt.Printf("ARCOUNT: %d\n", header.ARCOUNT)
-
 		questions, err := parser.ParseDNSQuestions(buf[12:], header.QDCOUNT)
 		if err != nil {
-			fmt.Println("Error parsing DNS questions:", err)
+			slog.Warn("Error parsing DNS questions", slog.String("error", err.Error()))
 			continue
 		}
 
 		question := questions[0]
 
-		fmt.Printf("QTYPE: %d\n", question.QTYPE)
-		fmt.Printf("QCLASS: %d\n", question.QCLASS)
-		fmt.Printf("DOMAIN: %s\n", question.DOMAIN)
-
 		answer, err := parser.CreateDNSAAnswer(question.QNAME, "192.168.2.143", 300)
 		if err != nil {
-			fmt.Println("Error creating DNS A answer:", err)
+			slog.Warn("Error creating DNS A answer", slog.String("error", err.Error()))
 			continue
 		}
 
-		fmt.Printf("Answer class: %d", answer.CLASS)
-
 		responseHeader, err := parser.CreateDNSAnswerHeader(header, 1, 0, 0)
 		if err != nil {
-			fmt.Println("Error creating dns answer header")
+			slog.Warn("Error creating DNS answer header", slog.String("error", err.Error()))
 			continue
 		}
 
@@ -73,13 +59,13 @@ func Run(conn net.PacketConn) {
 
 		packet, err := SerializeItems(items)
 		if err != nil {
-			fmt.Println("Could not serialize items:", err)
+			slog.Warn("Error serializing items", slog.String("error", err.Error()))
 			continue
 		}
 
 		_, err = conn.WriteTo(packet, addr)
 		if err != nil {
-			fmt.Println("Error writing UDP packet:", err)
+			slog.Warn("Error writing packet", slog.String("error", err.Error()))
 			continue
 		}
 

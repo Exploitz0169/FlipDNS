@@ -1,24 +1,28 @@
 package main
 
 import (
-	"fmt"
+	"log/slog"
 	"net"
 
+	"github.com/exploitz0169/flipdns/internal/logger"
 	"github.com/exploitz0169/flipdns/internal/udpserver"
 )
 
 func main() {
 
+	logger.InitLogger()
+
 	addr := ":53"
 
 	conn, err := net.ListenPacket("udp", addr)
 	if err != nil {
-		panic(err)
+		slog.Error(err.Error())
+		return
 	}
 
 	defer conn.Close()
 
-	fmt.Printf("Listening on %s\n", addr)
+	slog.Info("Started UDP server on addr " + addr)
 	udpserver.Run(conn)
 
 }
