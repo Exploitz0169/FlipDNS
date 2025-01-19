@@ -8,20 +8,22 @@ import (
 )
 
 type UdpServer struct {
-	app *app.App
+	app  *app.App
+	conn net.PacketConn
 }
 
-func NewUdpServer(app *app.App) *UdpServer {
+func NewUdpServer(app *app.App, conn net.PacketConn) *UdpServer {
 	return &UdpServer{
-		app: app,
+		app:  app,
+		conn: conn,
 	}
 }
 
-func (s *UdpServer) Run(conn net.PacketConn) {
+func (s *UdpServer) Run() {
 	buf := make([]byte, 512)
 
 	for {
-		n, addr, err := conn.ReadFrom(buf)
+		n, addr, err := s.conn.ReadFrom(buf)
 		if err != nil {
 			s.app.Logger.Warn("Failed to read packet",
 				slog.Int("bytes", n),
@@ -36,6 +38,6 @@ func (s *UdpServer) Run(conn net.PacketConn) {
 			slog.String("addr", addr.String()),
 		)
 
-		go s.handlePacket(buf[:n], addr, conn)
+		go s.handlePacket(buf[:n], addr)
 	}
 }

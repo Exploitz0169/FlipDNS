@@ -30,7 +30,7 @@ func main() {
 
 	logger.Info("Started UDP server on addr " + addr)
 
-	server := udpserver.NewUdpServer(app)
-	server.Run(conn)
+	server := udpserver.NewUdpServer(app, conn)
+	server.Run()
 
 }

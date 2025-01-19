@@ -7,13 +7,13 @@ import (
 	"github.com/exploitz0169/flipdns/pkg/dns"
 )
 
-func (s *UdpServer) handlePacket(buf []byte, addr net.Addr, conn net.PacketConn) {
+func (s *UdpServer) handlePacket(buf []byte, addr net.Addr) {
 	header, questions, err := dns.ParseDNSQuery(buf)
 	if err != nil {
 		s.app.Logger.Warn("Failed to parse DNS query",
 			slog.String("error", err.Error()),
 		)
-		s.sendErrorResponse(conn, addr, header, questions, dns.RCodeFormatError)
+		s.sendErrorResponse(addr, header, questions, dns.RCodeFormatError)
 		return
 	}
 
@@ -24,9 +24,9 @@ func (s *UdpServer) handlePacket(buf []byte, addr net.Addr, conn net.PacketConn)
 		)
 
 		if err == ErrRecordNotFound {
-			s.sendErrorResponse(conn, addr, header, questions, dns.RCodeNameError)
+			s.sendErrorResponse(addr, header, questions, dns.RCodeNameError)
 		} else {
-			s.sendErrorResponse(conn, addr, header, questions, dns.RCodeServerFail)
+			s.sendErrorResponse(addr, header, questions, dns.RCodeServerFail)
 		}
 
 		return
@@ -37,11 +37,11 @@ func (s *UdpServer) handlePacket(buf []byte, addr net.Addr, conn net.PacketConn)
 		s.app.Logger.Warn("Failed to build response",
 			slog.String("error", err.Error()),
 		)
-		s.sendErrorResponse(conn, addr, header, questions, dns.RCodeServerFail)
+		s.sendErrorResponse(addr, header, questions, dns.RCodeServerFail)
 		return
 	}
 
-	if err = s.sendResponse(conn, addr, packet); err != nil {
+	if err = s.sendResponse(addr, packet); err != nil {
 		s.app.Logger.Warn("Failed to send response",
 			slog.String("error", err.Error()),
 		)
