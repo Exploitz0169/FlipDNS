@@ -17,7 +17,6 @@ func NewUdpServer(app *app.App) *UdpServer {
 	}
 }
 
-// Temp just to test the parser
 func (s *UdpServer) Run(conn net.PacketConn) {
 	buf := make([]byte, 512)
 
