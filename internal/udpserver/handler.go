@@ -47,37 +47,3 @@ func (s *UdpServer) handlePacket(buf []byte, addr net.Addr, conn net.PacketConn)
 		)
 	}
 }
-
-func (s *UdpServer) sendErrorResponse(
-	conn net.PacketConn,
-	addr net.Addr,
-	header *dns.DNSHeader,
-	questions []*dns.DNSQuestion,
-	rcode uint8,
-) error {
-	response, err := s.buildResponse(header, questions, nil, rcode)
-	if err != nil {
-		s.app.Logger.Warn("Failed to build response",
-			slog.String("error", err.Error()),
-		)
-		return err
-	}
-
-	if err = s.sendResponse(conn, addr, response); err != nil {
-		s.app.Logger.Warn("Failed to send response",
-			slog.String("error", err.Error()),
-		)
-		return err
-	}
-
-	return nil
-}
-
-func (s *UdpServer) sendResponse(conn net.PacketConn, addr net.Addr, packet []byte) error {
-	_, err := conn.WriteTo(packet, addr)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
