@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-func InitLogger() {
+func NewLogger() *slog.Logger {
 
 	level := slog.LevelDebug
 	if os.Getenv("ENVIRONMENT") == "production" {
@@ -20,5 +20,7 @@ func InitLogger() {
 	logger := slog.New(handler)
 
 	slog.SetDefault(logger)
+
+	return logger
 
 }
