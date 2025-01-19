@@ -27,6 +27,8 @@ func (s *UdpServer) handlePacket(buf []byte, addr net.Addr, conn net.PacketConn)
 
 		if err == ErrRecordNotFound {
 			s.sendErrorResponse(conn, addr, header, questions, dns.RCodeNameError)
+		} else {
+			s.sendErrorResponse(conn, addr, header, questions, dns.RCodeServerFail)
 		}
 
 		return
