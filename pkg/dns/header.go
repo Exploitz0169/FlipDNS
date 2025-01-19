@@ -103,6 +103,15 @@ type DNSHeader struct {
 	ARCOUNT uint16
 }
 
+const (
+	RCodeNoError        = 0
+	RCodeFormatError    = 1
+	RCodeServerFail     = 2
+	RCodeNameError      = 3
+	RCodeNotImplemented = 4
+	RCodeRefused        = 5
+)
+
 func (flags *DNSHeaderFlags) Serialize() uint16 {
 	return uint16(flags.QR)<<15 |
 		uint16(flags.OPCODE)<<11 |
@@ -189,24 +198,34 @@ func ParseDNSHeaderFlags(buf []byte) (*DNSHeaderFlags, error) {
 }
 
 // Todo: consider TC, RA
-func CreateDNSAnswerHeader(queryHeader *DNSHeader, ancount uint16, nscount uint16, arcount uint16) (*DNSHeader, error) {
+func CreateDNSAnswerHeader(
+	queryHeader *DNSHeader,
+	ancount uint16,
+	nscount uint16,
+	arcount uint16,
+	authoritative bool,
+	rcode uint8,
+) (*DNSHeader, error) {
+	aa := uint8(0)
+	if authoritative {
+		aa = 1
+	}
 
 	return &DNSHeader{
 		ID: queryHeader.ID,
 		Flags: &DNSHeaderFlags{
 			QR:     1,
 			OPCODE: queryHeader.Flags.OPCODE,
-			AA:     1,
+			AA:     aa,
 			TC:     0,
 			RD:     queryHeader.Flags.RD,
 			RA:     0,
 			Z:      0,
-			RCODE:  0,
+			RCODE:  rcode,
 		},
 		QDCOUNT: queryHeader.QDCOUNT,
 		ANCOUNT: ancount,
 		NSCOUNT: nscount,
 		ARCOUNT: arcount,
 	}, nil
-
 }

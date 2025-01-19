@@ -17,18 +17,26 @@ func (s *UdpServer) handlePacket(buf []byte, addr net.Addr, conn net.PacketConn)
 	header, questions, err := dns.ParseDNSQuery(buf)
 	if err != nil {
 		s.app.Logger.Warn("Failed to parse DNS query", slog.String("error", err.Error()))
+		s.sendErrorResponse(conn, addr, header, questions, dns.RCodeFormatError)
 		return
 	}
 
 	answers, err := s.resolveQuestions(questions)
 	if err != nil {
 		s.app.Logger.Warn("Failed to resolve questions", slog.String("error", err.Error()))
+
+		if err == ErrRecordNotFound {
+			s.sendErrorResponse(conn, addr, header, questions, dns.RCodeNameError)
+		}
+
 		return
 	}
 
-	packet, err := s.buildResponse(header, questions, answers)
+	packet, err := s.buildResponse(header, questions, answers, 0)
 	if err != nil {
 		s.app.Logger.Warn("Failed to build response", slog.String("error", err.Error()))
+		s.sendErrorResponse(conn, addr, header, questions, dns.RCodeServerFail)
+		return
 	}
 
 	if err = s.sendResponse(conn, addr, packet); err != nil {
@@ -61,8 +69,8 @@ func (s *UdpServer) resolveQuestions(questions []*dns.DNSQuestion) ([]*dns.DNSRe
 	return answers, nil
 }
 
-func (s *UdpServer) buildResponse(header *dns.DNSHeader, questions []*dns.DNSQuestion, answers []*dns.DNSResourceRecord) ([]byte, error) {
-	responseHeader, err := dns.CreateDNSAnswerHeader(header, uint16(len(answers)), 0, 0)
+func (s *UdpServer) buildResponse(header *dns.DNSHeader, questions []*dns.DNSQuestion, answers []*dns.DNSResourceRecord, rcode uint8) ([]byte, error) {
+	responseHeader, err := dns.CreateDNSAnswerHeader(header, uint16(len(answers)), 0, 0, true, rcode)
 	if err != nil {
 		return nil, err
 	}
@@ -77,6 +85,23 @@ func (s *UdpServer) buildResponse(header *dns.DNSHeader, questions []*dns.DNSQue
 	}
 
 	return SerializeItems(items)
+}
+
+func (s *UdpServer) sendErrorResponse(conn net.PacketConn, addr net.Addr, header *dns.DNSHeader, questions []*dns.DNSQuestion, rcode uint8) error {
+
+	response, err := s.buildResponse(header, questions, nil, rcode)
+	if err != nil {
+		s.app.Logger.Warn("Failed to build response", slog.String("error", err.Error()))
+		return err
+	}
+
+	if err = s.sendResponse(conn, addr, response); err != nil {
+		s.app.Logger.Warn("Failed to send response", slog.String("error", err.Error()))
+		return err
+	}
+
+	return nil
+
 }
 
 func (s *UdpServer) sendResponse(conn net.PacketConn, addr net.Addr, packet []byte) error {
