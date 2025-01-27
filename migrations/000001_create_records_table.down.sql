@@ -1,0 +1,7 @@
+
+BEGIN;
+
+DROP TABLE IF EXISTS record;
+DROP TYPE record_type;
+
+COMMIT;

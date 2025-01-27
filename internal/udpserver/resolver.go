@@ -1,6 +1,7 @@
 package udpserver
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 
@@ -19,15 +20,15 @@ func (s *UdpServer) resolveQuestions(questions []*dns.DNSQuestion) ([]*dns.DNSRe
 			slog.String("domain", string(question.DOMAIN)),
 		)
 
-		record, ok := s.app.Db.GetRecord(question.DOMAIN)
-		if !ok {
+		record, error := s.app.Db.GetRecordByDomainName(context.Background(), question.DOMAIN)
+		if error != nil {
 			s.app.Logger.Warn("Record not found",
 				slog.String("domain", string(question.DOMAIN)),
 			)
 			return nil, ErrRecordNotFound
 		}
 
-		answer, err := dns.CreateDNSAAnswer(question.QNAME, record.IPv4, record.TTL)
+		answer, err := dns.CreateDNSAAnswer(question.QNAME, record.RecordData, uint32(record.Ttl))
 		if err != nil {
 			s.app.Logger.Warn("Error creating DNS A answer",
 				slog.String("error", err.Error()),
