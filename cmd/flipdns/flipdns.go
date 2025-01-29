@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/exploitz0169/flipdns/internal/api"
 	"github.com/exploitz0169/flipdns/internal/app"
 	"github.com/exploitz0169/flipdns/internal/logger"
 	"github.com/exploitz0169/flipdns/internal/repository"
@@ -44,6 +45,8 @@ func main() {
 	logger.Info("Started UDP server on addr " + addr)
 
 	server := udpserver.NewUdpServer(app, conn)
-	server.Run()
+	go server.Run()
 
+	api := api.NewAPI(app)
+	api.Run()
 }
