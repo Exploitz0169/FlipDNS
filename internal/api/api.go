@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/exploitz0169/flipdns/internal/api/handler"
 	"github.com/exploitz0169/flipdns/internal/api/middleware"
 	"github.com/exploitz0169/flipdns/internal/app"
 )
@@ -22,9 +21,7 @@ func NewAPI(app *app.App) *API {
 func (a *API) Run() {
 
 	router := http.NewServeMux()
-
-	handler := handler.NewHandler()
-	handler.LoadRoutes(router)
+	loadRoutes(router)
 
 	middlewareStack := middleware.CreateStack(
 		middleware.LoggerMiddleware,
