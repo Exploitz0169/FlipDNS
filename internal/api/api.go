@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/exploitz0169/flipdns/internal/api/handler"
+	"github.com/exploitz0169/flipdns/internal/api/middleware"
 	"github.com/exploitz0169/flipdns/internal/app"
 )
 
@@ -25,9 +26,13 @@ func (a *API) Run() {
 	handler := handler.NewHandler()
 	handler.LoadRoutes(router)
 
+	middlewareStack := middleware.CreateStack(
+		middleware.LoggerMiddleware,
+	)
+
 	server := http.Server{
 		Addr:    ":8000",
-		Handler: router,
+		Handler: middlewareStack(a.app, router),
 	}
 
 	a.app.Logger.Info("API server starting", slog.String("addr", server.Addr))
